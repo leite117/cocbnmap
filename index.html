@@ -43,13 +43,13 @@
     
     <script>
         // 1. CONFIGURAÇÃO DO MAPA (Visual Limpo)
-        var map = L.map('map').setView([-3.5, -44.5], 7); 
+        var map = L.map('map').setView([-3.5, -44.5], 5); 
 
         // Fundo Cinza/Branco (Positron) - Ideal para destacar as cores
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO',
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 10
         }).addTo(map);
 
         // 2. DADOS DAS UNIDADES (Com as correções em Santa Inês)
