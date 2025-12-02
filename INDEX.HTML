@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa COCB Norte</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; float: left; }
+        
+        /* Legenda Flutuante */
+        .legenda {
+            padding: 10px;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .legenda h4 { margin: 0 0 10px; color: #333; }
+        .item-legenda { margin-bottom: 5px; display: flex; align-items: center; }
+        .cor-box { width: 15px; height: 15px; display: inline-block; margin-right: 8px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    
+    <div class="legenda">
+        <h4>COCB Norte (Circunscrição)</h4>
+        <div id="itens-legenda"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 1. CONFIGURAÇÃO DO MAPA (Visual Limpo)
+        var map = L.map('map').setView([-3.5, -44.5], 7); 
+
+        // Fundo Cinza/Branco (Positron) - Ideal para destacar as cores
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 2. DADOS DAS UNIDADES (Com as correções em Santa Inês)
+        const unidades = {
+            "16º BBM (Santa Inês)": {
+                cor: "#f58231", // Laranja
+                cidades: [
+                    "SANTA INES", "ALTO ALEGRE DO PINDARE", "ARAGUANA", "ARARI", 
+                    "BELA VISTA DO MARANHAO", "BOM JARDIM", "CAJARI", "CENTRO DO GUILHERME", 
+                    "GOVERNADOR NEWTON BELO", "GOVERNADOR NEWTON BELLO", // <--- CORREÇÃO AQUI (Variação de grafia)
+                    "IGARAPE DO MEIO", "MARANHAOZINHO", "MONCAO", 
+                    "NOVA OLINDA DO MARANHAO", 
+                    "PINDARE MIRIM", "PINDARE-MIRIM", // <--- CORREÇÃO AQUI (Com hífen)
+                    "PIO XII", "PRESIDENTE MEDICI", "SANTA LUZIA", "SANTA LUZIA DO PARUA", 
+                    "SAO JOAO DO CARU", "SATUBINHA", "TUFILANDIA", "VIANA", 
+                    "VITORIA DO MEARIM", "ZE DOCA"
+                ]
+            },
+            "5º BBM (Caxias)": {
+                cor: "#e6194b", // Vermelho
+                cidades: ["CAXIAS", "ALDEIAS ALTAS", "BURITI BRAVO", "COELHO NETO", "DUQUE BACELAR", "GOVERNADOR EUGENIO BARROS", "GOVERNADOR LUIZ ROCHA", "SAO JOAO DO SOTER", "SENADOR ALEXANDRE COSTA"]
+            },
+            "7º BBM (Timon)": {
+                cor: "#3cb44b", // Verde
+                cidades: ["TIMON", "BARAO DE GRAJAU", "LAGOA DO MATO", "MATOES", "PARNARAMA", "PASSAGEM FRANCA", "SAO FRANCISCO DO MARANHAO", "SUCUPIRA DO RIACHAO"]
+            },
+            "15ª CIBM (Codó)": {
+                cor: "#ffe119", // Amarelo
+                cidades: ["CODO", "GOVERNADOR ARCHER", "TIMBIRAS"]
+            },
+            "6º BBM (Bacabal)": {
+                cor: "#4363d8", // Azul
+                cidades: ["BACABAL", "ALTAMIRA DO MARANHAO", "ALTO ALEGRE DO MARANHAO", "BOM LUGAR", "BREJO DE AREIA", "CONCEICAO DO LAGO-ACU", "LAGO DA PEDRA", "LAGO VERDE", "LAGOA GRANDE DO MARANHAO", "MARAJA DO SENA", "OLHO D'AGUA DAS CUNHAS", "PAULO RAMOS", "SAO LUIS GONZAGA DO MARANHAO", "SAO MATEUS DO MARANHAO", "VITORINO FREIRE"]
+            },
+            "13ª CIBM (Trizidela)": {
+                cor: "#911eb4", // Roxo
+                cidades: ["TRIZIDELA DO VALE", "BERNARDO DO MEARIM", "CAPINZAL DO NORTE", "IGARAPE GRANDE", "JOSELANDIA", "LAGO DO JUNCO", "LAGO DOS RODRIGUES", "LIMA CAMPOS", "PEDREIRAS", "POCAO DE PEDRAS"]
+            },
+            "19ª CIBM (Coroatá)": {
+                cor: "#46f0f0", // Ciano
+                cidades: ["COROATA", "PERITORO"]
+            },
+            "11º BBM (Itapecuru)": {
+                cor: "#f032e6", // Magenta
+                cidades: ["ITAPECURU MIRIM", "ANAJATUBA", "CANTANHEDE", "MATOES DO NORTE", "MIRANDA DO NORTE", "NINA RODRIGUES", "PIRAPEMAS", "PRESIDENTE VARGAS", "SANTA RITA", "VARGEM GRANDE"]
+            },
+            "14º BBM (Barreirinhas)": {
+                cor: "#bcf60c", // Lima
+                cidades: ["BARREIRINHAS", "HUMBERTO DE CAMPOS", "PRIMEIRA CRUZ", "SANTO AMARO DO MARANHAO"]
+            },
+            "15º BBM (Chapadinha)": {
+                cor: "#fabebe", // Rosa Claro
+                cidades: ["CHAPADINHA", "AFONSO CUNHA", "ANAPURUS", "BELAGUA", "BREJO", "BURITI", "MAGALHAES DE ALMEIDA", "MATA ROMA", "MILAGRES DO MARANHAO", "SANTA QUITERIA DO MARANHAO", "SAO BENEDITO DO RIO PRETO", "SAO BERNARDO", "URBANO SANTOS"]
+            },
+            "17ª CIBM (Tutóia)": {
+                cor: "#008080", // Teal
+                cidades: ["TUTOIA", "AGUA DOCE DO MARANHAO", "ARAIOSES", "PAULINO NEVES", "SANTANA DO MARANHAO"]
+            },
+            "8º BBM (Pinheiro)": {
+                cor: "#e6beff", // Lavanda
+                cidades: ["PINHEIRO", "AMAPA DO MARANHAO", "APICUM-ACU", "BACURI", "BOA VISTA DO GURUPI", "CANDIDO MENDES", "CARUTAPERA", "CEDRAL", "CENTRAL DO MARANHAO", "CENTRO NOVO DO MARANHAO", "CURURUPU", "GODOFREDO VIANA", "GOVERNADOR NUNES FREIRE", "GUIMARAES", "JUNCO DO MARANHAO", "LUIS DOMINGUES", "MARACACUME", "MIRINZAL", "PEDRO DO ROSARIO", "PORTO RICO DO MARANHAO", "PRESIDENTE SARNEY", "SANTA HELENA", "SERRANO DO MARANHAO", "TURIACU", "TURILANDIA"]
+            },
+            "18ª CIBM (São Bento)": {
+                cor: "#9a6324", // Marrom
+                cidades: ["SAO BENTO", "ALCANTARA", "BACURITUBA", "BEQUIMAO", "CAJAPIO", "MATINHA", "OLINDA NOVA DO MARANHAO", "PALMEIRANDIA", "PENALVA", "PERI MIRIM", "SAO JOAO BATISTA", "SAO VICENTE FERRER"]
+            }
+        };
+
+        // Função para normalizar nomes (Remove acentos, hífens e deixa maiúsculo)
+        function removerAcentos(str) {
+            if (!str) return "";
+            return str.normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "") // Tira acentos
+                      .toUpperCase()
+                      .replace(/-/g, " ") // Hífen vira espaço
+                      .replace(/'/g, "")  // Apóstrofo some
+                      .trim();
+        }
+
+        // Criar Legenda Visual
+        const divLegenda = document.getElementById('itens-legenda');
+        for (const [nome, dados] of Object.entries(unidades)) {
+            const item = document.createElement('div');
+            item.className = 'item-legenda';
+            item.innerHTML = `<span class="cor-box" style="background:${dados.cor}"></span> ${nome}`;
+            divLegenda.appendChild(item);
+        }
+
+        // 3. CARREGAR E COLORIR O MAPA
+        const urlGeoJSON = "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-21-mun.json";
+
+        fetch(urlGeoJSON)
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function(feature) {
+                        // Limpa o nome que vem do mapa (GeoJSON)
+                        const nomeGeoClean = removerAcentos(feature.properties.name);
+                        
+                        let cor = '#ffffff'; // Branco se não for da unidade
+                        let opacidade = 0.1; // Quase invisível se não for da unidade
+                        let weight = 1;
+
+                        // Verifica a qual unidade pertence
+                        for (const [nomeUnidade, dados] of Object.entries(unidades)) {
+                            // Limpa os nomes da nossa lista antes de comparar
+                            const listaLimpa = dados.cidades.map(c => removerAcentos(c));
+                            
+                            if (listaLimpa.includes(nomeGeoClean)) {
+                                cor = dados.cor;
+                                opacidade = 0.7; // Cor forte para as unidades
+                                weight = 1;
+                                break;
+                            }
+                        }
+
+                        return {
+                            fillColor: cor,
+                            weight: weight,
+                            opacity: 1,
+                            color: '#666',
+                            dashArray: '3',
+                            fillOpacity: opacidade
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        layer.bindTooltip(feature.properties.name);
+                    }
+                }).addTo(map);
+            })
+            .catch(error => {
+                console.error("Erro ao carregar mapa:", error);
+                alert("Erro ao carregar o contorno dos municípios.");
+            });
+
+    </script>
+</body>
+</html>
